@@ -46,6 +46,9 @@ public partial class GameRoot : Node2D
     /// <summary>Used when config.json is missing or broken.</summary>
     private const int FallbackWorldSize = 96;
 
+    /// <summary>Used when config.json is missing or broken.</summary>
+    private const double FallbackCameraZoom = 3.0;
+
     /// <summary>Player position is snapped to this fraction of a pixel (anti-jitter).</summary>
     private const float PixelSnapStep = 1f / 16f;
 
@@ -126,7 +129,10 @@ public partial class GameRoot : Node2D
         _inputRouter.Bind(_player, _joystick);
 
         _camera.MakeCurrent();
+        // Without this the world is drawn 1:1, i.e. a 96x96 map reads as a minimap.
+        _camera.Zoom = new Vector2((float)config.CameraZoom, (float)config.CameraZoom);
         _camera.GlobalPosition = SnapToPixelStep(_player.GlobalPosition);
+        GD.Print($"[camera] zoom {config.CameraZoom:0.##}x -> {390.0 / (16.0 * config.CameraZoom):0.#} x {844.0 / (16.0 * config.CameraZoom):0.#} tiles visible");
 
         GD.Print($"[world] {(_world.Width)}x{_world.Height} seed {_seed}, spawn ({_world.Spawn.X},{_world.Spawn.Y}), player at ({_player.GlobalPosition.X:0.#},{_player.GlobalPosition.Y:0.#})");
 
@@ -317,6 +323,13 @@ public partial class GameRoot : Node2D
 
         public int WorldHeight { get; private set; } = FallbackWorldSize;
 
+        /// <summary>
+        /// Camera magnification. At 16 px tiles a zoom of 3 shows about 8 x 17 tiles on a
+        /// 390 x 844 portrait screen; zoom 2 shows about 12 x 26. Anything else and the
+        /// world reads as a minimap instead of a game.
+        /// </summary>
+        public double CameraZoom { get; private set; } = FallbackCameraZoom;
+
         public static GameConfig Load(string resourcePath)
         {
             var config = new GameConfig();
@@ -341,6 +354,14 @@ public partial class GameRoot : Node2D
 
                 config.WorldWidth = ReadSize(root, "worldWidth");
                 config.WorldHeight = ReadSize(root, "worldHeight");
+
+                if (root.TryGetProperty("cameraZoom", out JsonElement zoomValue)
+                    && zoomValue.TryGetDouble(out double zoom)
+                    && zoom >= 1.0
+                    && zoom <= 8.0)
+                {
+                    config.CameraZoom = zoom;
+                }
             }
             catch (JsonException ex)
             {
