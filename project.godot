@@ -17,6 +17,14 @@ config/features=PackedStringArray("4.5", "C#", "Mobile")
 ; aborts with: ERROR: Export Icons: Invalid icon (icons/settings_58x58): ''.
 config/icon="res://icon.png"
 
+[display]
+
+; Portrait, iPhone 12 logical points. The DevPreview SubViewport is the same size, so the
+; game inside the fake phone body is pixel-for-pixel what the device runs.
+window/size/viewport_width=390
+window/size/viewport_height=844
+window/handheld/orientation=1
+
 [dotnet]
 
 project/assembly_name="AsahiMono"
@@ -25,6 +33,8 @@ project/assembly_name="AsahiMono"
 
 renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="mobile"
+; Pixel art: nearest neighbour, no blur. 0 = TEX_FILTER_NEAREST.
+textures/canvas_textures/default_texture_filter=0
 ; Required for Apple Embedded export. Godot's has_valid_project_configuration()
 ; returns false when this is off and prints NO reason for it
 ; (editor/export/editor_export_platform_apple_embedded.cpp:2293).
