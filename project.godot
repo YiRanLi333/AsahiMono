@@ -22,3 +22,7 @@ project/assembly_name="AsahiMono"
 
 renderer/rendering_method="mobile"
 renderer/rendering_method.mobile="mobile"
+; Required for Apple Embedded export. Godot's has_valid_project_configuration()
+; returns false when this is off and prints NO reason for it
+; (editor/export/editor_export_platform_apple_embedded.cpp:2293).
+textures/vram_compression/import_etc2_astc=true

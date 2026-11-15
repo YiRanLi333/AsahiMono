@@ -16,9 +16,14 @@ jobs:
     runs-on: macos-15
     timeout-minutes: 60
 
+    # Needed so the failure path can push the build logs to the ci-logs branch
+    # (GitHub's job-log API is not readable without a token from our side).
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Install .NET SDK 8
         uses: actions/setup-dotnet@v4
@@ -27,11 +32,10 @@ jobs:
 
       - name: Architecture guard (Game.Core must stay engine-free)
         run: |
-          # T-0001 guard, kept as the literal one-liner the task card asks for.
-          # ! grep -qi godot Game.Core/Game.Core.csproj
-          # The literal form alone is not enough: bash `set -e` ignores the exit
-          # status of a command whose result is inverted with `!`, so a real match
-          # would not fail the step. The if-block below is what actually enforces it.
+          # T-0001 guard. The literal one-liner `! grep -qi godot Game.Core/Game.Core.csproj`
+          # is NOT enough: bash `set -e` ignores the exit status of a command whose result
+          # is inverted with `!`, so a real match would not fail the step. The if-block
+          # below is what actually enforces it.
           if grep -qi godot Game.Core/Game.Core.csproj; then
             echo "::error file=Game.Core/Game.Core.csproj::Godot reference found - architecture breach"
             exit 1
@@ -42,6 +46,14 @@ jobs:
         run: |
           dotnet --info
           dotnet test Game.Core.Tests/Game.Core.Tests.csproj --nologo
+
+      - name: Verify mobile texture compression setting
+        run: |
+          set -euo pipefail
+          # iOS export refuses to run unless ETC2/ASTC import is on, and it fails
+          # WITHOUT printing any reason (editor_export_platform_apple_embedded.cpp:2293).
+          grep -q '^textures/vram_compression/import_etc2_astc=true$' project.godot
+          echo "etc2/astc import: enabled"
 
       - name: Download Godot 4.7.2 .NET (mono) editor for macOS
         run: |
@@ -74,7 +86,7 @@ jobs:
       - name: Import resources
         run: |
           set -euo pipefail
-          "$GODOT_BIN" --headless --path . --import
+          "$GODOT_BIN" --headless --path . --import 2>&1 | tee import.log
 
       - name: Export Xcode project
         run: |
@@ -82,26 +94,28 @@ jobs:
           mkdir -p build/ios
           # export_project_only=true in export_presets.cfg: Godot writes the
           # Xcode project and does not attempt to code sign anything.
-          "$GODOT_BIN" --headless --path . --verbose --export-release "iOS" build/ios/App.xcodeproj
+          "$GODOT_BIN" --headless --path . --verbose --export-release "iOS" build/ios/App.xcodeproj 2>&1 | tee export.log
           ls -la build/ios
 
       - name: Archive (unsigned)
         run: |
           set -euo pipefail
-          xcodebuild -project build/ios/App.xcodeproj -list
-          SCHEME="$(xcodebuild -project build/ios/App.xcodeproj -list -json \
-            | /usr/bin/python3 -c 'import json,sys; p=json.load(sys.stdin)["project"]; s=(p.get("schemes") or p.get("targets")); print(s[0])')"
-          echo "archiving scheme: $SCHEME"
-          xcodebuild -project build/ios/App.xcodeproj \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -sdk iphoneos \
-            -archivePath build/ios/App.xcarchive \
-            archive \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            EXPANDED_CODE_SIGN_IDENTITY=""
+          {
+            xcodebuild -project build/ios/App.xcodeproj -list
+            SCHEME="$(xcodebuild -project build/ios/App.xcodeproj -list -json \
+              | /usr/bin/python3 -c 'import json,sys; p=json.load(sys.stdin)["project"]; s=(p.get("schemes") or p.get("targets")); print(s[0])')"
+            echo "archiving scheme: $SCHEME"
+            xcodebuild -project build/ios/App.xcodeproj \
+              -scheme "$SCHEME" \
+              -configuration Release \
+              -sdk iphoneos \
+              -archivePath build/ios/App.xcarchive \
+              archive \
+              CODE_SIGNING_ALLOWED=NO \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGN_IDENTITY="" \
+              EXPANDED_CODE_SIGN_IDENTITY=""
+          } 2>&1 | tee xcodebuild.log
 
       - name: Package Payload into App.ipa
         run: |
@@ -120,3 +134,27 @@ jobs:
           name: AsahiMono-unsigned-ipa
           path: build/App.ipa
           if-no-files-found: error
+
+      # ---- diagnostics channel ------------------------------------------------
+      # The job-log API needs a token we do not hold; check-runs annotations only
+      # carry "exit code 1". So on failure we commit the raw logs to a side branch
+      # that is publicly readable at
+      #   https://raw.githubusercontent.com/<owner>/<repo>/ci-logs/<file>.log
+      # The workflow only triggers on main, so this branch never re-triggers it.
+      - name: Publish CI logs to ci-logs branch
+        if: failure()
+        run: |
+          set -e
+          rm -rf ci-logs
+          mkdir -p ci-logs
+          for f in import.log export.log xcodebuild.log; do
+            [ -f "$f" ] && cp "$f" "ci-logs/$f" || true
+          done
+          printf 'run=%s\nattempt=%s\nsha=%s\n' "$GITHUB_RUN_ID" "$GITHUB_RUN_ATTEMPT" "$GITHUB_SHA" > ci-logs/META.txt
+          cd ci-logs
+          git init -q -b ci-logs
+          git config user.email ci@yiranli.cc
+          git config user.name "AsahiMono CI"
+          git add -A
+          git commit -q -m "ci logs run ${GITHUB_RUN_ID} attempt ${GITHUB_RUN_ATTEMPT}"
+          git push -f "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" ci-logs
