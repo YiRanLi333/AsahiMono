@@ -88,6 +88,13 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN" --headless --path . --import 2>&1 | tee import.log
 
+      - name: Build C# solution (ExportRelease)
+        run: |
+          set -euo pipefail
+          # Godot's C# export packages an existing assembly; it does not build the
+          # game csproj for you. `dotnet test` above only builds Game.Core.Tests.
+          dotnet build AsahiMono.csproj -c ExportRelease 2>&1 | tee build.log
+
       - name: Export Xcode project
         run: |
           set -euo pipefail
@@ -136,13 +143,39 @@ jobs:
           if-no-files-found: error
 
       # ---- diagnostics channel ------------------------------------------------
-      # The job-log API needs a token we do not hold; check-runs annotations only
-      # carry "exit code 1". So on failure we commit the raw logs to a side branch
-      # that is publicly readable at
+      # The job-log API needs a token we do not hold, and pushing to a side branch
+      # needs a writable GITHUB_TOKEN (this repo's default is read-only). What IS
+      # publicly readable without any token is the check-runs annotations endpoint:
+      #   GET /repos/{owner}/{repo}/check-runs/{job_id}/annotations
+      # So on failure we surface the interesting log lines as annotations, and put
+      # the full log on a keyless paste whose URL we also annotate.
+      - name: Surface failure details as annotations
+        if: failure()
+        run: |
+          set -uo pipefail
+          # GitHub caps annotations per step, so keep it short and specific.
+          if [ -f export.log ]; then
+            grep -n -i -E 'error|cannot|fail|fatal|missing|denied|no such|unable' export.log \
+              | tail -n 6 \
+              | while IFS= read -r line; do
+                  esc=$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r//g')
+                  echo "::error file=export.log::$esc"
+                done
+          fi
+          for f in export.log build.log import.log xcodebuild.log; do
+            [ -f "$f" ] || continue
+            url=$(curl -sS -m 30 --data-binary "@$f" https://paste.rs 2>/dev/null || true)
+            if [ -n "${url:-}" ]; then
+              echo "::error file=$f::FULL $f -> $url"
+            fi
+          done
+
+      # Optional mirror: needs a writable GITHUB_TOKEN, so never let it mask the
+      # real failure above. Publicly readable at
       #   https://raw.githubusercontent.com/<owner>/<repo>/ci-logs/<file>.log
-      # The workflow only triggers on main, so this branch never re-triggers it.
       - name: Publish CI logs to ci-logs branch
         if: failure()
+        continue-on-error: true
         run: |
           set -e
           rm -rf ci-logs
