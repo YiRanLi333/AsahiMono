@@ -88,12 +88,16 @@ jobs:
           set -euo pipefail
           "$GODOT_BIN" --headless --path . --import 2>&1 | tee import.log
 
-      - name: Build C# solution (ExportRelease)
+      - name: Build C# solution (Debug + ExportRelease)
         run: |
           set -euo pipefail
           # Godot's C# export packages an existing assembly; it does not build the
           # game csproj for you. `dotnet test` above only builds Game.Core.Tests.
-          dotnet build AsahiMono.csproj -c ExportRelease 2>&1 | tee build.log
+          # Debug is what the headless editor loads at startup (otherwise it logs
+          # ".NET: Failed to load project assembly"); ExportRelease is what the
+          # exporter packages.
+          dotnet build AsahiMono.csproj -c Debug --nologo 2>&1 | tee build.log
+          dotnet build AsahiMono.csproj -c ExportRelease --nologo 2>&1 | tee -a build.log
 
       - name: Export Xcode project
         run: |
