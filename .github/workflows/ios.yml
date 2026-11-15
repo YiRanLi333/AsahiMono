@@ -1,4 +1,4 @@
-name: ios
+﻿name: ios
 
 on:
   push:
@@ -6,19 +6,26 @@ on:
   workflow_dispatch:
 
 env:
-  GODOT_VERSION: 4.7.2
+  # 4.5.2 is the last Godot release whose iOS template still uses the ObjC++
+  # entry point. 4.6+ switched the template to Swift + SwiftUI (visionOS rework)
+  # and strongly links SwiftUICore.framework, which does not exist before iOS 18;
+  # the test device runs iOS 15.3.1 and dies in dyld with
+  #   Library not loaded: /System/Library/Frameworks/SwiftUICore.framework/SwiftUICore
+  # Keep the editor, the export templates and Godot.NET.Sdk in lockstep.
+  GODOT_VERSION: 4.5.2
   DOTNET_CLI_TELEMETRY_OPTOUT: "1"
   DOTNET_NOLOGO: "1"
 
 jobs:
   unsigned-ipa:
     name: Export unsigned iOS .ipa
-    # macos-15's default Xcode is 16.4 (iPhoneOS18.5 SDK) and the archive step dies at
-    # link time with:
-    #   ld: Undefined symbols for architecture arm64: _MTLTensorDomain, _CADynamicRange*
-    # because Godot 4.7.2's prebuilt iOS template (libgodot.ios.a) is compiled against the
-    # iOS 26 SDK. macos-26 ships Xcode 26.6 by default, so build there.
-    runs-on: macos-26
+    # macos-15 = macOS 15.8.2 + Xcode 16.4 (iPhoneOS18.5 SDK) by default, which is the
+    # SDK generation Godot 4.5.2's prebuilt libgodot.ios.a was built against.
+    # (While this job still used Godot 4.7.2 it had to run on macos-26, because that
+    # template is built against the iOS 26 SDK and died at link time on macos-15 with
+    # `ld: Undefined symbols: _MTLTensorDomain, _CADynamicRange*`. That reason is gone
+    # with the downgrade, so prefer the older, better-matching toolchain.)
+    runs-on: macos-15
     timeout-minutes: 60
 
     # Needed so the failure path can push the build logs to the ci-logs branch
@@ -67,7 +74,7 @@ jobs:
           grep -q '^textures/vram_compression/import_etc2_astc=true$' project.godot
           echo "etc2/astc import: enabled"
 
-      - name: Download Godot 4.7.2 .NET (mono) editor for macOS
+      - name: Download Godot ${GODOT_VERSION} .NET (mono) editor for macOS
         run: |
           set -euo pipefail
           curl -fL --retry 5 --retry-all-errors --retry-delay 5 -o godot_mono_macos.zip \

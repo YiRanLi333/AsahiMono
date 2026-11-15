@@ -12,7 +12,7 @@ config_version=5
 
 config/name="AsahiMono"
 run/main_scene="res://Scenes/Main.tscn"
-config/features=PackedStringArray("4.7", "C#", "Mobile")
+config/features=PackedStringArray("4.5", "C#", "Mobile")
 ; iOS export generates every App Icon slot from this. If it is empty the exporter
 ; aborts with: ERROR: Export Icons: Invalid icon (icons/settings_58x58): ''.
 config/icon="res://icon.png"
