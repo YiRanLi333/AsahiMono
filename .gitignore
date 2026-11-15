@@ -1,0 +1,30 @@
+# ---- Godot ----
+.godot/
+*.translation
+export_credentials.cfg
+
+# ---- build output ----
+build/
+bin/
+obj/
+*.dll.mdb
+*.pdb.mdb
+mono_crash.*.json
+
+# ---- .NET ----
+TestResults/
+*.nupkg
+*.snupkg
+
+# ---- IDE / editor ----
+*.user
+*.suo
+*.sln.docstates
+.vs/
+.idea/
+.vscode/
+
+# ---- OS ----
+.DS_Store
+Thumbs.db
+desktop.ini

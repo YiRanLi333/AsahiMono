@@ -1,0 +1,122 @@
+name: ios
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  GODOT_VERSION: 4.7.2
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  unsigned-ipa:
+    name: Export unsigned iOS .ipa
+    runs-on: macos-15
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install .NET SDK 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Architecture guard (Game.Core must stay engine-free)
+        run: |
+          # T-0001 guard, kept as the literal one-liner the task card asks for.
+          # ! grep -qi godot Game.Core/Game.Core.csproj
+          # The literal form alone is not enough: bash `set -e` ignores the exit
+          # status of a command whose result is inverted with `!`, so a real match
+          # would not fail the step. The if-block below is what actually enforces it.
+          if grep -qi godot Game.Core/Game.Core.csproj; then
+            echo "::error file=Game.Core/Game.Core.csproj::Godot reference found - architecture breach"
+            exit 1
+          fi
+          echo "guard ok: Game.Core.csproj has no Godot reference"
+
+      - name: dotnet test
+        run: |
+          dotnet --info
+          dotnet test Game.Core.Tests/Game.Core.Tests.csproj --nologo
+
+      - name: Download Godot 4.7.2 .NET (mono) editor for macOS
+        run: |
+          set -euo pipefail
+          curl -fL --retry 5 --retry-all-errors --retry-delay 5 -o godot_mono_macos.zip \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_mono_macos.universal.zip"
+          unzip -q godot_mono_macos.zip -d godot_editor
+          APP="$(find godot_editor -maxdepth 2 -name '*.app' -print -quit)"
+          echo "godot app: $APP"
+          chmod +x "$APP/Contents/MacOS/Godot"
+          xattr -dr com.apple.quarantine "$APP" || true
+          echo "GODOT_BIN=$APP/Contents/MacOS/Godot" >> "$GITHUB_ENV"
+          "$APP/Contents/MacOS/Godot" --version
+
+      - name: Download and install export templates
+        run: |
+          set -euo pipefail
+          curl -fL --retry 5 --retry-all-errors --retry-delay 5 -o templates.tpz \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_mono_export_templates.tpz"
+          mkdir -p templates_extract
+          unzip -q templates.tpz -d templates_extract
+          TPL_VER="$(cat templates_extract/templates/version.txt)"
+          echo "template version: $TPL_VER"
+          DEST="$HOME/Library/Application Support/Godot/export_templates/$TPL_VER"
+          mkdir -p "$DEST"
+          cp -R templates_extract/templates/. "$DEST/"
+          ls -la "$DEST"
+          test -f "$DEST/ios.zip"
+
+      - name: Import resources
+        run: |
+          set -euo pipefail
+          "$GODOT_BIN" --headless --path . --import
+
+      - name: Export Xcode project
+        run: |
+          set -euo pipefail
+          mkdir -p build/ios
+          # export_project_only=true in export_presets.cfg: Godot writes the
+          # Xcode project and does not attempt to code sign anything.
+          "$GODOT_BIN" --headless --path . --verbose --export-release "iOS" build/ios/App.xcodeproj
+          ls -la build/ios
+
+      - name: Archive (unsigned)
+        run: |
+          set -euo pipefail
+          xcodebuild -project build/ios/App.xcodeproj -list
+          SCHEME="$(xcodebuild -project build/ios/App.xcodeproj -list -json \
+            | /usr/bin/python3 -c 'import json,sys; p=json.load(sys.stdin)["project"]; s=(p.get("schemes") or p.get("targets")); print(s[0])')"
+          echo "archiving scheme: $SCHEME"
+          xcodebuild -project build/ios/App.xcodeproj \
+            -scheme "$SCHEME" \
+            -configuration Release \
+            -sdk iphoneos \
+            -archivePath build/ios/App.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            EXPANDED_CODE_SIGN_IDENTITY=""
+
+      - name: Package Payload into App.ipa
+        run: |
+          set -euo pipefail
+          APP="$(find build/ios/App.xcarchive/Products/Applications -maxdepth 1 -name '*.app' -print -quit)"
+          echo "app bundle: $APP"
+          test -n "$APP"
+          mkdir -p build/ipa/Payload
+          cp -R "$APP" build/ipa/Payload/
+          (cd build/ipa && zip -qry ../App.ipa Payload)
+          ls -la build/App.ipa
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AsahiMono-unsigned-ipa
+          path: build/App.ipa
+          if-no-files-found: error
