@@ -13,7 +13,12 @@ env:
 jobs:
   unsigned-ipa:
     name: Export unsigned iOS .ipa
-    runs-on: macos-15
+    # macos-15's default Xcode is 16.4 (iPhoneOS18.5 SDK) and the archive step dies at
+    # link time with:
+    #   ld: Undefined symbols for architecture arm64: _MTLTensorDomain, _CADynamicRange*
+    # because Godot 4.7.2's prebuilt iOS template (libgodot.ios.a) is compiled against the
+    # iOS 26 SDK. macos-26 ships Xcode 26.6 by default, so build there.
+    runs-on: macos-26
     timeout-minutes: 60
 
     # Needed so the failure path can push the build logs to the ci-logs branch
@@ -29,6 +34,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+
+      - name: Show toolchain versions
+        run: |
+          xcode-select -p
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+          dotnet --version
 
       - name: Architecture guard (Game.Core must stay engine-free)
         run: |
