@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://ciso0sample0aa"]
+
+[ext_resource type="Script" path="res://DevPreview/IsoSample.cs" id="1_iso"]
+
+[node name="IsoSample" type="Node2D"]
+script = ExtResource("1_iso")

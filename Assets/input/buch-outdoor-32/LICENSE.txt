@@ -1,0 +1,26 @@
+PACK:        Outdoor 32x32 tileset
+AUTHOR:      Buch
+SOURCE PAGE: https://opengameart.org/content/outdoor-32x32-tileset
+DOWNLOADED:  2026-11-16 (Asia/Shanghai)
+LICENSE:     CC0 1.0 Universal (Public Domain Dedication)
+             (source page license field reads: "License(s): CC0")
+LICENSE URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+TAGS ON THE SOURCE PAGE:
+    32x32, tileset, grass, Rock, water, stump, sign, Pixel Art
+
+CC0 1.0 KEY SENTENCES (https://creativecommons.org/publicdomain/zero/1.0/):
+    "The person who associated a work with this deed has dedicated the work to
+     the public domain by waiving all of his or her rights to the work
+     worldwide under copyright law, including all related and neighboring
+     rights, to the extent allowed by law."
+    "You can copy, modify, distribute and perform the work, even for commercial
+     purposes, all without asking permission."
+
+FILES IN THIS FOLDER:
+    sheet_12.png     640x288  20x9 grid of 32x32 tiles
+    sheet_13.png     byte-identical duplicate of sheet_12.png
+                     (both SHA256 831785AF95DA3DA0093C0C06A6C1DF69C1F4E20BE6681234B631E8EDE70BA728)
+    preview_320.png  192x192  preview image
+
+NOTE: you only need ONE of sheet_12 / sheet_13 -- they are the same file.

@@ -46,8 +46,11 @@ public partial class GameRoot : Node2D
     /// <summary>Used when config.json is missing or broken.</summary>
     private const int FallbackWorldSize = 96;
 
-    /// <summary>Used when config.json is missing or broken.</summary>
-    private const double FallbackCameraZoom = 3.0;
+    /// <summary>
+    /// Used when config.json is missing or broken. 1.5 matches the old 16 px / zoom 3 framing
+    /// now that tiles are 32 px.
+    /// </summary>
+    private const double FallbackCameraZoom = 1.5;
 
     /// <summary>Player position is snapped to this fraction of a pixel (anti-jitter).</summary>
     private const float PixelSnapStep = 1f / 16f;
@@ -63,12 +66,18 @@ public partial class GameRoot : Node2D
     private Hud _hud = null!;
     private VirtualJoystick _joystick = null!;
     private InputRouter _inputRouter = null!;
+    private IsoWorldRenderer? _iso;
 
     private double _ticksPerSecond;
     private double _tickAccumulator;
     private double _autoSaveTimer;
     private int _seed;
     private bool _wroteFinalSave;
+
+    /// <summary>Zoom levels the <c>Z</c> key cycles through (gameplay framing presets).</summary>
+    private static readonly double[] ZoomSteps = { 1.0, 1.5, 2.0, 3.0 };
+
+    private double _cameraZoom = FallbackCameraZoom;
 
     /// <inheritdoc />
     public override void _Ready()
@@ -113,6 +122,21 @@ public partial class GameRoot : Node2D
 
         WorldRenderer.Paint(_ground, _props, _world);
 
+        // Projection switch: "grid" = the classic square 3/4 tiles, "iso" = 2:1 diamonds.
+        // The isometric path replaces the two TileMapLayers with a single drawing node, so
+        // world data, generation, saving and the clock stay exactly the same.
+        if (config.IsIsometric)
+        {
+            _ground.Visible = false;
+            _props.Visible = false;
+
+            _iso = new IsoWorldRenderer { Name = "IsoWorld" };
+            AddChild(_iso);
+            _iso.Initialize(_world, _player);
+            _player.EnableIso(_iso, _world, _world.Spawn);
+            GD.Print("[iso] projection = iso (2:1 diamonds), TileMapLayers hidden");
+        }
+
         if (useSave)
         {
             PlacePlayerAt(SaveCell(save!));
@@ -130,15 +154,62 @@ public partial class GameRoot : Node2D
 
         _camera.MakeCurrent();
         // Without this the world is drawn 1:1, i.e. a 96x96 map reads as a minimap.
-        _camera.Zoom = new Vector2((float)config.CameraZoom, (float)config.CameraZoom);
+        ApplyCameraZoom(config.CameraZoom);
         _camera.GlobalPosition = SnapToPixelStep(_player.GlobalPosition);
-        GD.Print($"[camera] zoom {config.CameraZoom:0.##}x -> {390.0 / (16.0 * config.CameraZoom):0.#} x {844.0 / (16.0 * config.CameraZoom):0.#} tiles visible");
 
         GD.Print($"[world] {(_world.Width)}x{_world.Height} seed {_seed}, spawn ({_world.Spawn.X},{_world.Spawn.Y}), player at ({_player.GlobalPosition.X:0.#},{_player.GlobalPosition.Y:0.#})");
 
         // A save right away means the very first headless run leaves a readable save.json
         // behind even if the process is killed with --quit-after.
         SaveNow("startup");
+    }
+
+    /// <summary>
+    /// Apply a camera magnification, tell the HUD about it and log how much world fits on
+    /// screen. Clamped to 1..4: below 1 is a minimap, above 4 a 96x96 farm is unplayable.
+    /// </summary>
+    private void ApplyCameraZoom(double zoom)
+    {
+        _cameraZoom = Math.Clamp(zoom, 1.0, 4.0);
+        _camera.Zoom = new Vector2((float)_cameraZoom, (float)_cameraZoom);
+
+        Vector2 viewport = GetViewportRect().Size;
+
+        // Grid: one tile = TileSize px on both axes. Iso: neighbouring cells are half a
+        // diamond apart (32 px across, 16 px down), so those are the real screen steps.
+        int stepX = _iso is not null ? IsoWorldRenderer.HalfW : WorldRenderer.TileSize;
+        int stepY = _iso is not null ? IsoWorldRenderer.HalfH : WorldRenderer.TileSize;
+        double tilesX = viewport.X / (stepX * _cameraZoom);
+        double tilesY = viewport.Y / (stepY * _cameraZoom);
+        GD.Print($"[camera] zoom {_cameraZoom:0.##}x -> {tilesX:0.#} x {tilesY:0.#} cells visible ({viewport.X:0}x{viewport.Y:0} px)");
+        _hud.SetCameraInfo(_cameraZoom, stepX, viewport);
+    }
+
+    /// <inheritdoc />
+    public override void _UnhandledKeyInput(InputEvent @event)
+    {
+        if (@event is not InputEventKey key || !key.Pressed || key.Echo)
+        {
+            return;
+        }
+
+        if (key.Keycode != Key.Z)
+        {
+            return;
+        }
+
+        // Cycle the gameplay framing presets: 1x -> 1.5x -> 2x -> 3x -> 1x ...
+        int next = 0;
+        for (int i = 0; i < ZoomSteps.Length; i++)
+        {
+            if (ZoomSteps[i] > _cameraZoom + 0.001)
+            {
+                next = i;
+                break;
+            }
+        }
+
+        ApplyCameraZoom(ZoomSteps[next]);
     }
 
     /// <inheritdoc />
@@ -194,9 +265,15 @@ public partial class GameRoot : Node2D
         return world;
     }
 
-    /// <summary>Drop the player on a cell: cell -> pixel centre (cell * 16 + half a tile).</summary>
+    /// <summary>Drop the player on a cell: grid projection -> pixel centre, iso -> grid cell.</summary>
     private void PlacePlayerAt((int X, int Y) cell)
     {
+        if (_iso is not null)
+        {
+            _player.PlaceIso(cell);
+            return;
+        }
+
         _player.GlobalPosition = WorldRenderer.CellCenterToPixel(cell.X, cell.Y);
         _player.ClearTarget();
     }
@@ -266,7 +343,9 @@ public partial class GameRoot : Node2D
     /// <summary>Snapshot the world into a save document.</summary>
     private GameState CaptureState()
     {
-        Vector2I cell = WorldRenderer.PixelToCell(_player.GlobalPosition);
+        Vector2I cell = _player.IsoMode
+            ? new Vector2I(Mathf.RoundToInt(_player.IsoGrid.X), Mathf.RoundToInt(_player.IsoGrid.Y))
+            : WorldRenderer.PixelToCell(_player.GlobalPosition);
 
         return new GameState
         {
@@ -330,6 +409,12 @@ public partial class GameRoot : Node2D
         /// </summary>
         public double CameraZoom { get; private set; } = FallbackCameraZoom;
 
+        /// <summary>Projection name from config.json: "grid" (square 3/4) or "iso" (2:1 diamonds).</summary>
+        public string Projection { get; private set; } = "grid";
+
+        /// <summary>Convenience flag: true when <see cref="Projection"/> is "iso".</summary>
+        public bool IsIsometric => string.Equals(Projection, "iso", StringComparison.OrdinalIgnoreCase);
+
         public static GameConfig Load(string resourcePath)
         {
             var config = new GameConfig();
@@ -361,6 +446,21 @@ public partial class GameRoot : Node2D
                     && zoom <= 8.0)
                 {
                     config.CameraZoom = zoom;
+                }
+
+                if (root.TryGetProperty("projection", out JsonElement projectionValue)
+                    && projectionValue.ValueKind == JsonValueKind.String)
+                {
+                    string name = projectionValue.GetString() ?? "grid";
+                    if (!string.Equals(name, "grid", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(name, "iso", StringComparison.OrdinalIgnoreCase))
+                    {
+                        GD.PushWarning($"[config] unknown projection '{name}'; expected 'grid' or 'iso' -> using grid");
+                    }
+                    else
+                    {
+                        config.Projection = name;
+                    }
                 }
             }
             catch (JsonException ex)

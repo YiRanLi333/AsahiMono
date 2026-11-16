@@ -23,6 +23,7 @@ public partial class Hud : Control
 
     private Label _timeLabel = null!;
     private Label _fpsLabel = null!;
+    private Label _cameraLabel = null!;
     private Control _guides = null!;
 
     private WorldClock? _clock;
@@ -48,7 +49,28 @@ public partial class Hud : Control
         _fpsLabel.OffsetRight = -12;
         _fpsLabel.OffsetBottom = SafeTop + 25;
 
+        _cameraLabel = MakeLabel(Vector2.Zero, 12, new Color(0.92f, 0.9f, 0.75f));
+        _cameraLabel.Name = "CameraLabel";
+        _cameraLabel.Text = string.Empty;
+        _cameraLabel.HorizontalAlignment = HorizontalAlignment.Right;
+        _cameraLabel.SetAnchorsPreset(LayoutPreset.TopWide);
+        _cameraLabel.OffsetLeft = 0;
+        _cameraLabel.OffsetTop = SafeTop + 24;
+        _cameraLabel.OffsetRight = -12;
+        _cameraLabel.OffsetBottom = SafeTop + 44;
+
         BuildGuides();
+    }
+
+    /// <summary>
+    /// Show the current magnification and how much of the map fits on screen. Printed next to
+    /// the FPS counter so a framing change can be judged without reading the console.
+    /// </summary>
+    public void SetCameraInfo(double zoom, int tileSize, Vector2 viewport)
+    {
+        double tilesX = viewport.X / (tileSize * zoom);
+        double tilesY = viewport.Y / (tileSize * zoom);
+        _cameraLabel.Text = $"zoom {zoom:0.##}x · {tilesX:0.#}×{tilesY:0.#} 格 · {viewport.X:0}×{viewport.Y:0}";
     }
 
     /// <summary>Hand the HUD the clock it should display.</summary>

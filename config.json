@@ -1,1 +1,7 @@
-{"minutesPerDay": 10, "worldWidth": 96, "worldHeight": 96, "cameraZoom": 3}
+{
+  "minutesPerDay": 10,
+  "worldWidth": 96,
+  "worldHeight": 96,
+  "cameraZoom": 2,
+  "projection": "iso"
+}

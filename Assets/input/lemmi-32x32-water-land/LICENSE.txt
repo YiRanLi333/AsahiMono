@@ -1,0 +1,25 @@
+PACK:        32x32 Water and land Map Tilesets
+AUTHOR:      Lemmi
+SOURCE PAGE: https://opengameart.org/content/32x32-water-and-land-map-tilesets
+DOWNLOADED:  2026-11-16 (Asia/Shanghai)
+LICENSE:     CC0 1.0 Universal (Public Domain Dedication)
+             (source page license field reads: "License(s): CC0")
+LICENSE URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 1.0 KEY SENTENCES (https://creativecommons.org/publicdomain/zero/1.0/):
+    "The person who associated a work with this deed has dedicated the work to
+     the public domain by waiving all of his or her rights to the work
+     worldwide under copyright law, including all related and neighboring
+     rights, to the extent allowed by law."
+    "You can copy, modify, distribute and perform the work, even for commercial
+     purposes, all without asking permission."
+
+FILES IN THIS FOLDER:
+    tilesets.zip                      original archive as downloaded
+    extracted/Tilesheet-land-v5.png   320x384  grass / sand / dirt-path wang set
+    extracted/Tilesheet-water.png     256x256  8x8 water surface sheet
+    extracted/Tilesheet_snow.png      537x193  snow variant
+    extracted/Tilesheets-nature.png   192x207  trees, bushes, flowers, mushrooms (not 32-aligned)
+    tilesheet-land-v5.png             copy of the land sheet for convenient sampling
+    tilesheet-water.png               copy of the water sheet
+    tilesheets-nature.png             copy of the nature sheet

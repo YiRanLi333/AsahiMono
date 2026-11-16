@@ -1,0 +1,31 @@
+PACK:        Dungeon Crawl 32x32 tiles
+MAINTAINER:  Chris Hamons; uploaded by MedicineStorm
+             (the tileset is a compilation -- see the quote below)
+SOURCE PAGE: https://opengameart.org/content/dungeon-crawl-32x32-tiles
+DOWNLOADED:  2026-11-16 (Asia/Shanghai)
+LICENSE:     CC0 1.0 Universal (Public Domain Dedication)
+             (source page license field reads: "License(s): CC0")
+LICENSE URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+QUOTES FROM THE SOURCE PAGE:
+    "All images are 2D 32x32 pixel tiles in orthogonal (overhead)
+     three-quarters perspective."
+    "Package contains over 3000 tiles! This is a collaborative effort from
+     many, many artists."
+
+CC0 1.0 KEY SENTENCES (https://creativecommons.org/publicdomain/zero/1.0/):
+    "The person who associated a work with this deed has dedicated the work to
+     the public domain by waiving all of his or her rights to the work
+     worldwide under copyright law, including all related and neighboring
+     rights, to the extent allowed by law."
+    "You can copy, modify, distribute and perform the work, even for commercial
+     purposes, all without asking permission."
+
+TECHNICAL NOTE:
+    DungeonCrawl_ProjectUtumnoTileset.png has the transparency key BAKED IN as
+    pure magenta RGB(255,0,255). A shader/import step must treat magenta as
+    transparent before use.
+
+FILES IN THIS FOLDER:
+    DungeonCrawl_ProjectUtumnoTileset.png  2048x1536  64x48 grid of 32x32 tiles
+    tiles_tiny_sample_2.png                320x320   sample / preview image

@@ -1,0 +1,38 @@
+PACK:        Legend of Faune
+AUTHOR:      Luis Zuno (@ansimuz)
+SOURCE PAGE: https://opengameart.org/content/legend-of-faune
+DOWNLOADED:  2026-11-16 (Asia/Shanghai)
+LICENSE:     CC0 1.0 Universal (Public Domain Dedication)
+             (source page license field reads: "License(s): CC0")
+LICENSE URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+LICENSE TEXT SHIPPED INSIDE THE PACK
+(extracted/legend of faune files/public-license.txt):
+    "Artwork created by Luis Zuno @ansimuz
+     License for Everyone.
+     Public domain and free to use on whatever you want, personal or commercial.
+     Credit is not required but appreciated."
+
+CC0 1.0 KEY SENTENCES (https://creativecommons.org/publicdomain/zero/1.0/):
+    "The person who associated a work with this deed has dedicated the work to
+     the public domain by waiving all of his or her rights to the work
+     worldwide under copyright law, including all related and neighboring
+     rights, to the extent allowed by law."
+    "You can copy, modify, distribute and perform the work, even for commercial
+     purposes, all without asking permission."
+
+FILES IN THIS FOLDER:
+    01-sprites.png / 02-environment.png / 03-tiles.png   700x500 assembled preview sheets
+    banner.png                                          1600x831 promo banner
+    legend of faune files.zip                           original archive
+    extracted/legend of faune files/                    unpacked assets:
+        public-license.txt
+        Environment/PNG/tree.png          105x96   tree
+        Environment/PNG/shrub.png          48x16   bush
+        Environment/PNG/tiles.png         464x256  ground tiles, 16x16 grid (NOT 32x32)
+        Environment/PNG/animated-tiles.png 96x224   water / foam animation frames, 32px
+        Environment/PNG/animated-tree/tree-top.png 800x74  + trunk.png 48x32
+        Sprites/Player/sprites/walk-{up,down,side,*-lift}/walk-*-1..8.png   32x32, 8 frames each
+        Sprites/Player/sprites/run-{up,down,side}/run-*-1..8.png            32x32, 8 frames each
+        Sprites/Player/sprites/push/*.png, faint/*.png
+        Sprites/HUD/PNG/*.png, Sprites/portraits/Faune-concept.png

@@ -1,0 +1,25 @@
+PACK:        DENZI's public domain art
+AUTHOR:      DENZI (uploaded to OpenGameArt by MedicineStorm)
+SOURCE PAGE: https://opengameart.org/content/denzis-public-domain-art
+DOWNLOADED:  2026-11-16 (Asia/Shanghai)
+LICENSE:     CC0 1.0 Universal (Public Domain Dedication)
+             (source page license field reads: "License(s): CC0")
+LICENSE URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+CC0 1.0 KEY SENTENCES (https://creativecommons.org/publicdomain/zero/1.0/):
+    "The person who associated a work with this deed has dedicated the work to
+     the public domain by waiving all of his or her rights to the work
+     worldwide under copyright law, including all related and neighboring
+     rights, to the extent allowed by law."
+    "You can copy, modify, distribute and perform the work, even for commercial
+     purposes, all without asking permission."
+
+FILES IN THIS FOLDER:
+    DENZI_CC0_0.zip                   original archive
+    DENZI_CC0_32x32_tileset.png       1024x1248  32x39 grid, strictly aligned
+    DENZI_CC0_32x48_monsters.png      448x528
+    Denzi_cc0_preview_1.jpg           480x480    preview
+    Denzi_cc0_preview_3.jpg           1024x1248  preview
+    extracted/DENZI_CC0/              18 individual sheets (dungeon tiles, various_tile,
+                                      magic icons, skill tiles, monsters, helms,
+                                      character paperdolls, deep dwarves)

@@ -1,0 +1,27 @@
+PACK:        Mage City Arcanos
+AUTHOR:      Hyptosis
+SOURCE PAGE: https://opengameart.org/content/mage-city-arcanos
+DOWNLOADED:  2026-11-16 (Asia/Shanghai)
+LICENSE:     CC0 1.0 Universal (Public Domain Dedication)
+             (source page license field reads: "License(s): CC0")
+LICENSE URL: https://creativecommons.org/publicdomain/zero/1.0/
+
+AUTHOR'S STATEMENT (quoted from the source page):
+    "These are public domain, you don't have to give me credit if you don't
+     want to. but I would appreciate it of course!"
+
+AUTHOR'S NOTE ON ORIGIN (quoted from the source page -- read this before
+shipping: the art is derived from an RPG Maker XP tileset per the author):
+    "This was a total conversion on an rpgmakerxp tileset I THINK"
+
+CC0 1.0 KEY SENTENCES (https://creativecommons.org/publicdomain/zero/1.0/):
+    "The person who associated a work with this deed has dedicated the work to
+     the public domain by waiving all of his or her rights to the work
+     worldwide under copyright law, including all related and neighboring
+     rights, to the extent allowed by law."
+    "You can copy, modify, distribute and perform the work, even for commercial
+     purposes, all without asking permission."
+
+FILES IN THIS FOLDER:
+    magecity_1.png   256x1450  main 32px tileset (front-view / top-down)
+    Arkanos_0.png    1280x1280 example map, usable as a style preview
