@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://q7oxitghciyi"]
+
+[ext_resource type="Script" path="res://DevPreview/KindShowcase.cs" id="1_kinds"]
+
+[node name="KindShowcase" type="Node2D"]
+script = ExtResource("1_kinds")

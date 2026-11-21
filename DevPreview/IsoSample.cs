@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using AsahiMono.Core.World;
@@ -26,9 +26,9 @@ public partial class IsoSample : Node2D
     private const int HalfW = TileW / 2;
     private const int HalfH = TileH / 2;
 
-    private const string SheetLand = "res://Assets/input/lemmi-32x32-water-land/tilesheet-land-v5.png";
-    private const string SheetWater = "res://Assets/input/lemmi-32x32-water-land/tilesheet-water.png";
-    private const string BaseAnsimuz = "res://Assets/input/ansimuz-legend-of-faune/extracted/legend of faune files/";
+    private const string SheetLand = "res://Assets/_input/lemmi-32x32-water-land/tilesheet-land-v5.png";
+    private const string SheetWater = "res://Assets/_input/lemmi-32x32-water-land/tilesheet-water.png";
+    private const string BaseAnsimuz = "res://Assets/_input/ansimuz-legend-of-faune/extracted/legend of faune files/";
     private const string TreePath = BaseAnsimuz + "Environment/PNG/tree.png";
     private const string ShrubPath = BaseAnsimuz + "Environment/PNG/shrub.png";
     private const string PlayerDownPath = BaseAnsimuz + "Sprites/Player/sprites/walk-down/walk-down-1.png";

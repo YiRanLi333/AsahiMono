@@ -6,6 +6,16 @@ namespace AsahiMono.Core.World;
 
 /// <summary>
 /// 地表格子类型。数值是存档里的稳定编码，<b>不要改动已有数值</b>。
+///
+/// 追加规则（硬约束）：<b>只许在尾部追加</b>，禁止重排、禁止复用已删的数值——
+/// 存档里的 <c>Overrides[].Tile</c> 既可能写成名字（<c>"Grass"</c>），
+/// 也可能写成老版本留下的数字（<c>1</c>），两者都按这里的数值解释。
+///
+/// 每个成员后面的 <c>slug:</c> 注释是磁盘目录名
+/// <c>res://Assets/tiles/iso/ground/&lt;slug&gt;/</c> 的唯一来源：
+/// 渲染器（IsoWorldRenderer）按枚举顺序取图，
+/// <c>tools/tileset/make_atlas.py</c> 用正则读这些注释，所以<b>改 slug 要同时改目录名</b>。
+/// 顺序 = 地面图集里 kind 的顺序 = 美术的交付顺序，见 docs/engine/TILE-KINDS.md。
 /// </summary>
 public enum TileKind
 {
@@ -13,22 +23,42 @@ public enum TileKind
     Void = 0,
 
     /// <summary>普通草地，可站立，是默认地表。</summary>
-    Grass = 1,
+    Grass = 1,          // slug: grass
 
     /// <summary>裸土（未耕作）。</summary>
-    Soil = 2,
+    Soil = 2,           // slug: soil
 
     /// <summary>已耕作的土地，可以播种。</summary>
-    TilledSoil = 3,
+    TilledSoil = 3,     // slug: tilled
 
     /// <summary>水。不可站立。</summary>
-    Water = 4,
+    Water = 4,          // slug: water
 
     /// <summary>沙地（水边的过渡带），可站立。</summary>
-    Sand = 5,
+    Sand = 5,           // slug: sand
 
     /// <summary>铺过的路，稍后走路会更快。</summary>
-    Path = 6,
+    Path = 6,           // slug: path
+
+    /// <summary>野草地：没人打理、草更杂更深的草地。可站立。</summary>
+    GrassWild = 7,      // slug: grass_wild
+
+    /// <summary>枯草地：偏黄、干燥的草。可站立。</summary>
+    GrassDry = 8,       // slug: grass_dry
+
+    /// <summary>泥地：可站立，将来踩上去会减速（减速尚未实现）。</summary>
+    Mud = 9,            // slug: mud
+
+    /// <summary>松土：翻过但没整平、更碎更浅的土。可站立。</summary>
+    SoilLoose = 10,     // slug: soil_loose
+
+    /// <summary>碎石地：压实的砂石路肩。可站立。</summary>
+    Gravel = 11,        // slug: gravel
+
+    /// <summary>石板地：铺得规整的石地面，适合做院子/广场。可站立。</summary>
+    StoneFloor = 12,    // slug: stone_floor
+
+    // 13 号位留给美术已画、用户暂缓的 wood_floor（目录已存在 png，枚举里刻意还没有它）。
 }
 
 /// <summary>
@@ -141,7 +171,37 @@ public sealed class WorldMap
         _props[index] = prop;
     }
 
-    /// <summary>可站立：非 Void/Water，且该格无 Tree/Rock。越界恒为 <c>false</c>。</summary>
+    /// <summary>
+    /// 某种地表本身能不能站人（<b>不看</b>格子上的物件）。权威表见 docs/engine/TILE-KINDS.md。
+    ///
+    /// 12 种地皮里只有 <see cref="TileKind.Void"/>（地图外）和 <see cref="TileKind.Water"/> 挡路；
+    /// 其余都可站立。其中 <see cref="TileKind.Mud"/> 是"能走但将来要减速"，
+    /// 减速还没实现——加的时候在这里返回速度系数，别改这张布尔表。
+    ///
+    /// 新增 kind 时请显式列出，别依赖默认分支：默认分支是"可站立"，这样美术新交的地皮
+    /// 哪怕代码还没跟上也不会变成隐形墙；同时它也是老存档里出现未知数值时的安全行为。
+    /// </summary>
+    public static bool IsWalkableKind(TileKind kind) => kind switch
+    {
+        TileKind.Void => false,
+        TileKind.Water => false,
+
+        // 草地三兄弟（普通 / 野生 / 枯黄）。
+        TileKind.Grass or TileKind.GrassWild or TileKind.GrassDry => true,
+
+        // 土壤三兄弟（裸土 / 松土 / 已耕作）。
+        TileKind.Soil or TileKind.SoilLoose or TileKind.TilledSoil => true,
+
+        // 硬化地面（沙 / 铺路 / 碎石 / 石板）。
+        TileKind.Sand or TileKind.Path or TileKind.Gravel or TileKind.StoneFloor => true,
+
+        // 泥地：可站立，将来做"踩上去变慢"。
+        TileKind.Mud => true,
+
+        _ => true,
+    };
+
+    /// <summary>可站立：地表可站立（<see cref="IsWalkableKind"/>）且该格无 Tree/Rock。越界恒为 <c>false</c>。</summary>
     public bool IsWalkable(int x, int y)
     {
         int index = IndexOf(x, y);
@@ -150,8 +210,7 @@ public sealed class WorldMap
             return false;
         }
 
-        TileKind tile = _tiles[index];
-        if (tile == TileKind.Void || tile == TileKind.Water)
+        if (!IsWalkableKind(_tiles[index]))
         {
             return false;
         }
